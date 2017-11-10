@@ -27,6 +27,8 @@ import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.arquillian.spacelift.task.Task;
 import org.arquillian.spacelift.task.text.ReplacementTuple;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Uncompress Tool
@@ -34,6 +36,7 @@ import org.arquillian.spacelift.task.text.ReplacementTuple;
  * @author <a href="asotobu@gmail.com">Alex Soto</a>
  */
 public abstract class UncompressTool extends Task<File, File> {
+    private final static Logger LOGGER = LoggerFactory.getLogger(UncompressTool.class);
 
     protected static final String CUT_DIR_PATTERN = "^/?([^/]+)/(.*)";
     protected static final String CUT_DIR_REPLACEMENT = "$2";
@@ -94,6 +97,8 @@ public abstract class UncompressTool extends Task<File, File> {
 
     @Override
     protected File process(File input) throws Exception {
+        LOGGER.trace(String.format("input exists: %s",
+                input.exists()));
         ArchiveEntry entry = null;
 
         /** Read entries using the getNextEntry method **/
@@ -103,12 +108,18 @@ public abstract class UncompressTool extends Task<File, File> {
         while ((entry = compressedInputStream.getNextEntry()) != null) {
 
             File file = new File(this.dest, remapEntryName(entry.getName()));
+            LOGGER.trace(String.format("entry file: %s",
+                    file.getAbsolutePath()));
+            LOGGER.trace(String.format("entry file's parent exists: %s",
+                    file.getParentFile().exists()));
 
             if (entry.isDirectory()) {
+                LOGGER.trace("creating entry file because it's a directory");
                 file.mkdirs();
             } else {
-
+                LOGGER.trace("entry file is not a directory, assuming file");
                 if (!file.getParentFile().exists()) {
+                    LOGGER.trace("creating inexisting parent directories of entry file");
                     file.getParentFile().mkdirs();
                 }
 
