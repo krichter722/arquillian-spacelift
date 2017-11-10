@@ -22,7 +22,10 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.io.FileUtils;
@@ -106,16 +109,47 @@ public abstract class UncompressTool extends Task<File, File> {
             File file = new File(this.dest, remapEntryName(entry.getName()));
 
             if (entry.isDirectory()) {
-                FileUtils.forceMkdir(file);
+                FileUtils.forceMkdir(file.getAbsoluteFile());
+                int pythonDebugReturncode = Runtime.getRuntime().exec(new String[] {"python3",
+                        "-c",
+                        String.format("'import os;os.makedirs(\"%s\");'",
+                                file.getAbsoluteFile().getAbsolutePath())}).waitFor();
+                System.out.println("pythonDebugReturncode: "+pythonDebugReturncode);
             } else {
                 if (!file.getParentFile().exists()) {
-                    FileUtils.forceMkdir(file.getParentFile());
+                    Queue<File> fs = new LinkedList<File>();
+                    File f = file.getParentFile().getAbsoluteFile();
+                    while(f != null) {
+                        System.out.println("f: "+f);
+                        fs.add(f);
+                        f = f.getParentFile();
+                    }
+                    while(!fs.isEmpty()) {
+                        File f0 = fs.poll();
+                        System.out.println(f0.getAbsolutePath());
+                        FileUtils.forceMkdir(f0);
+                    }
+                    FileUtils.forceMkdir(file.getParentFile().getAbsoluteFile());
                 }
+//                if(!file.exists()) {
+//                    FileUtils.touch(file);
+//                }
+                int pythonDebugReturncode = Runtime.getRuntime().exec(new String[] {"python3",
+                        "-c",
+                        String.format("'import os;os.makedirs(\"%s\");import sys;ret_value=1;if os.path.exists(\"%s\"): ret_value=0;sys.exit(ret_value);'",
+                                file.getParentFile().getAbsoluteFile().getAbsolutePath(),
+                                file.getParentFile().getAbsoluteFile().getAbsolutePath())}).waitFor();
+                System.out.println("pythonDebugReturncode: "+pythonDebugReturncode);
+                pythonDebugReturncode = Runtime.getRuntime().exec(new String[] {"python3",
+                        "-c",
+                        String.format("'from pathlib import Path;Path(\"%s\").touch();'",
+                                file.getAbsoluteFile().getAbsolutePath())}).waitFor();
+                System.out.println("pythonDebugReturncode: "+pythonDebugReturncode);
 
                 int count;
                 byte data[] = new byte[BUFFER];
 
-                FileOutputStream fos = new FileOutputStream(file);
+                FileOutputStream fos = new FileOutputStream(file.getAbsoluteFile());
                 BufferedOutputStream dest = new BufferedOutputStream(fos, BUFFER);
                 while ((count = compressedInputStream.read(data, 0, BUFFER)) != -1) {
                     dest.write(data, 0, count);
