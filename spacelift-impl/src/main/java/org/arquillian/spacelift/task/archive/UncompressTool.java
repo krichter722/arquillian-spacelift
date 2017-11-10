@@ -22,7 +22,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.io.FileUtils;
@@ -109,6 +111,16 @@ public abstract class UncompressTool extends Task<File, File> {
                 FileUtils.forceMkdir(file);
             } else {
                 if (!file.getParentFile().exists()) {
+                    Queue<File> fs = new LinkedList<File>();
+                    File f = file.getParentFile();
+                    while(f != null) {
+                        fs.add(f);
+                    }
+                    while(!fs.isEmpty()) {
+                        File f0 = fs.poll();
+                        System.out.println(f0.getAbsolutePath());
+                        FileUtils.forceMkdir(f0);
+                    }
                     FileUtils.forceMkdir(file.getParentFile());
                 }
 
